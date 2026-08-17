@@ -14,11 +14,17 @@ import LinearProgress from "@mui/material/LinearProgress";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
 import Stack from "@mui/material/Stack";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
+import Dialog from "@mui/material/Dialog";
 import ImageRoundedIcon from "@mui/icons-material/ImageRounded";
 import VideocamRoundedIcon from "@mui/icons-material/VideocamRounded";
 import CloudUploadRoundedIcon from "@mui/icons-material/CloudUploadRounded";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
+import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import AppShell from "../components/AppShell";
 import apiClient from "../api/client";
 
@@ -126,15 +132,87 @@ function ReportButton({ image, crackLength, potholeDiameter }) {
   );
 }
 
+function ViewableImage({ src, alt, onView }) {
+  return (
+    <Box
+      sx={{
+        position: "relative",
+        cursor: "pointer",
+        "&:hover .view-overlay": { opacity: 1 },
+      }}
+      onClick={() => onView(src, alt)}
+    >
+      <CardMedia component="img" image={src} alt={alt} />
+      <Box
+        className="view-overlay"
+        sx={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          bgcolor: "rgba(15,23,42,0.35)",
+          opacity: 0,
+          transition: "opacity 0.15s ease",
+        }}
+      >
+        <VisibilityRoundedIcon sx={{ color: "#fff" }} />
+      </Box>
+    </Box>
+  );
+}
+
+function ImageViewerDialog({ viewer, onClose }) {
+  return (
+    <Dialog open={Boolean(viewer)} onClose={onClose} maxWidth="lg" fullWidth>
+      <IconButton
+        onClick={onClose}
+        aria-label="Close preview"
+        sx={{
+          position: "absolute",
+          top: 8,
+          right: 8,
+          zIndex: 1,
+          bgcolor: "rgba(255,255,255,0.85)",
+          "&:hover": { bgcolor: "#fff" },
+        }}
+      >
+        <CloseRoundedIcon />
+      </IconButton>
+      {viewer && <Box component="img" src={viewer.src} alt={viewer.alt} sx={{ width: "100%", display: "block" }} />}
+    </Dialog>
+  );
+}
+
 function UploadPanel({ kind, onResult }) {
   const inputRef = useRef(null);
   const [fileName, setFileName] = useState("");
+  const [previewUrl, setPreviewUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const accept = kind === "image" ? "image/*" : "video/*";
   const fieldName = kind === "image" ? "file" : "video";
   const endpoint = kind === "image" ? "/api/analyze/image" : "/api/analyze/video";
+
+  const handleFileChange = (e) => {
+    const selected = e.target.files?.[0] || null;
+    setFileName(selected?.name || "");
+    setPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return selected ? URL.createObjectURL(selected) : "";
+    });
+  };
+
+  const handleClear = () => {
+    if (inputRef.current) inputRef.current.value = "";
+    setFileName("");
+    setPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return "";
+    });
+    onResult(null);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -157,40 +235,74 @@ function UploadPanel({ kind, onResult }) {
 
   return (
     <Box component="form" onSubmit={handleSubmit}>
-      <Box
-        component="label"
-        htmlFor={`${kind}-upload-input`}
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 1,
-          border: "2px dashed #cbd5e1",
-          borderRadius: 3,
-          py: 5,
-          cursor: "pointer",
-          textAlign: "center",
-          bgcolor: "#f8fafc",
-          "&:hover": { borderColor: "primary.main", bgcolor: "rgba(67,56,202,0.03)" },
-        }}
-      >
-        <CloudUploadRoundedIcon sx={{ fontSize: 32, color: "primary.main" }} />
-        <Typography sx={{ fontWeight: 600 }}>
-          {fileName || `Click to choose ${kind === "image" ? "an image" : "a video"}`}
-        </Typography>
-        <Typography variant="caption" sx={{ color: "text.secondary" }}>
-          {kind === "image" ? "JPG, PNG up to ~10MB" : "MP4, MOV — sampled every 3 seconds"}
-        </Typography>
-        <input
-          id={`${kind}-upload-input`}
-          ref={inputRef}
-          type="file"
-          accept={accept}
-          hidden
-          required
-          onChange={(e) => setFileName(e.target.files?.[0]?.name || "")}
-        />
+      <Box sx={{ position: "relative" }}>
+        <Box
+          component="label"
+          htmlFor={`${kind}-upload-input`}
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 1,
+            border: "2px dashed #cbd5e1",
+            borderRadius: 3,
+            py: previewUrl ? 2.5 : 5,
+            cursor: "pointer",
+            textAlign: "center",
+            bgcolor: "#f8fafc",
+            "&:hover": { borderColor: "primary.main", bgcolor: "rgba(67,56,202,0.03)" },
+          }}
+        >
+          {previewUrl ? (
+            <Box
+              component="img"
+              src={previewUrl}
+              alt="Selected preview"
+              sx={{ maxHeight: 160, maxWidth: "100%", borderRadius: 2, objectFit: "cover" }}
+            />
+          ) : (
+            <CloudUploadRoundedIcon sx={{ fontSize: 32, color: "primary.main" }} />
+          )}
+          <Typography sx={{ fontWeight: 600 }}>
+            {fileName || `Click to choose ${kind === "image" ? "an image" : "a video"}`}
+          </Typography>
+          <Typography variant="caption" sx={{ color: "text.secondary" }}>
+            {kind === "image" ? "JPG, PNG up to ~10MB" : "MP4, MOV — sampled every 3 seconds"}
+          </Typography>
+          <input
+            id={`${kind}-upload-input`}
+            ref={inputRef}
+            type="file"
+            accept={accept}
+            hidden
+            required
+            onChange={handleFileChange}
+          />
+        </Box>
+        {fileName && (
+          <Tooltip title="Remove selected file">
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleClear();
+              }}
+              aria-label="Remove selected file"
+              sx={{
+                position: "absolute",
+                top: 8,
+                right: 8,
+                bgcolor: "background.paper",
+                boxShadow: 1,
+                "&:hover": { bgcolor: "background.paper" },
+              }}
+            >
+              <CloseRoundedIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        )}
       </Box>
 
       <Button type="submit" variant="contained" fullWidth size="large" disabled={loading} sx={{ mt: 2.5, py: 1.3 }}>
@@ -209,11 +321,32 @@ export default function Dashboard() {
   const [tab, setTab] = useState("image");
   const [imageResult, setImageResult] = useState(null);
   const [videoResult, setVideoResult] = useState(null);
+  const [viewer, setViewer] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   const handleTabChange = (_e, value) => {
     setTab(value);
     setImageResult(null);
     setVideoResult(null);
+  };
+
+  const openViewer = (src, alt) => setViewer({ src, alt });
+  const closeViewer = () => setViewer(null);
+
+  const handleDeleteImage = async () => {
+    if (!imageResult) return;
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      const filenames = [imageResult.filename, imageResult.crack_filename].filter(Boolean);
+      await Promise.all(filenames.map((name) => apiClient.delete(`/media/${encodeURIComponent(name)}`)));
+      setImageResult(null);
+    } catch {
+      setDeleteError("Failed to delete image. Please try again.");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
@@ -255,9 +388,18 @@ export default function Dashboard() {
           {tab === "image" && imageResult && (
             <Card sx={{ borderRadius: 3, height: "100%" }}>
               <CardContent sx={{ p: 3 }}>
-                <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
-                  Analysis Result
-                </Typography>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                    Analysis Result
+                  </Typography>
+                  <Tooltip title="Delete this analysis and its images">
+                    <span>
+                      <IconButton size="small" color="error" onClick={handleDeleteImage} disabled={deleting}>
+                        {deleting ? <CircularProgress size={18} color="inherit" /> : <DeleteRoundedIcon fontSize="small" />}
+                      </IconButton>
+                    </span>
+                  </Tooltip>
+                </Stack>
 
                 <Stack direction="row" flexWrap="wrap" gap={1.5} sx={{ mb: 3 }}>
                   <StatTile
@@ -282,7 +424,7 @@ export default function Dashboard() {
                 <Grid container spacing={2}>
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <Box sx={{ borderRadius: 2, overflow: "hidden", border: "1px solid #e2e8f0" }}>
-                      <CardMedia component="img" image={mediaUrl(imageResult.filename)} alt="Uploaded" />
+                      <ViewableImage src={mediaUrl(imageResult.filename)} alt="Uploaded" onView={openViewer} />
                     </Box>
                     <Typography variant="caption" sx={{ color: "text.secondary", mt: 0.5, display: "block" }}>
                       Original image
@@ -297,7 +439,7 @@ export default function Dashboard() {
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <Box sx={{ borderRadius: 2, overflow: "hidden", border: "1px solid #e2e8f0" }}>
-                      <CardMedia component="img" image={mediaUrl(imageResult.crack_filename)} alt="Crack detection" />
+                      <ViewableImage src={mediaUrl(imageResult.crack_filename)} alt="Crack detection" onView={openViewer} />
                     </Box>
                     <Typography variant="caption" sx={{ color: "text.secondary", mt: 0.5, display: "block" }}>
                       Crack detection overlay
@@ -315,7 +457,7 @@ export default function Dashboard() {
               {videoResult.map((frame) => (
                 <Grid size={{ xs: 12, sm: 6 }} key={frame.path}>
                   <Card sx={{ borderRadius: 3 }}>
-                    <CardMedia component="img" image={mediaUrl(frame.path)} alt={`Frame ${frame.time}`} />
+                    <ViewableImage src={mediaUrl(frame.path)} alt={`Frame ${frame.time}`} onView={openViewer} />
                     <CardContent>
                       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
                         <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600 }}>
@@ -357,6 +499,11 @@ export default function Dashboard() {
           {tab === "video" && !videoResult && <EmptyState kind="video" />}
         </Grid>
       </Grid>
+
+      <ImageViewerDialog viewer={viewer} onClose={closeViewer} />
+      <Snackbar open={Boolean(deleteError)} autoHideDuration={4000} onClose={() => setDeleteError("")}>
+        <Alert severity="error">{deleteError}</Alert>
+      </Snackbar>
     </AppShell>
   );
 }
