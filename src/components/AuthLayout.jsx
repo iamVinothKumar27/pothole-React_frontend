@@ -1,8 +1,8 @@
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import ConstructionRoundedIcon from "@mui/icons-material/ConstructionRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
+import RoadSenseIcon from "./RoadSenseIcon";
 
 const FEATURES = [
   "AI pothole detection with confidence scoring",
@@ -39,7 +39,7 @@ export default function AuthLayout({ children }) {
               background: "linear-gradient(135deg, #6366f1, #4338ca)",
             }}
           >
-            <ConstructionRoundedIcon sx={{ color: "#fff" }} />
+            <RoadSenseIcon sx={{ color: "#fff" }} />
           </Box>
           <Typography sx={{ fontWeight: 800, fontSize: 18 }}>RoadSense</Typography>
         </Stack>
@@ -87,7 +87,7 @@ export default function AuthLayout({ children }) {
               background: "linear-gradient(135deg, #6366f1, #4338ca)",
             }}
           >
-            <ConstructionRoundedIcon sx={{ color: "#fff", fontSize: 18 }} />
+            <RoadSenseIcon sx={{ color: "#fff", fontSize: 18 }} />
           </Box>
           <Typography sx={{ fontWeight: 800, color: "text.primary" }}>RoadSense</Typography>
         </Stack>

@@ -10,8 +10,8 @@ import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
 import AssignmentRoundedIcon from "@mui/icons-material/AssignmentRounded";
 import ReportProblemRoundedIcon from "@mui/icons-material/ReportProblemRounded";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
-import ConstructionRoundedIcon from "@mui/icons-material/ConstructionRounded";
 import { useAuth } from "../context/AuthContext";
+import RoadSenseIcon from "./RoadSenseIcon";
 
 export const SIDEBAR_WIDTH = 264;
 
@@ -78,7 +78,7 @@ function SidebarContent({ onNavigate }) {
             background: "linear-gradient(135deg, #6366f1, #4338ca)",
           }}
         >
-          <ConstructionRoundedIcon sx={{ color: "#fff", fontSize: 20 }} />
+          <RoadSenseIcon sx={{ color: "#fff", fontSize: 20 }} />
         </Box>
         <Box>
           <Typography sx={{ color: "#fff", fontWeight: 800, fontSize: 15, lineHeight: 1.2 }}>
